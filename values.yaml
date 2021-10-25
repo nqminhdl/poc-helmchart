@@ -1,0 +1,41 @@
+---
+awsNodeTerminationHandler:
+  enabled: false
+
+certManager:
+  enabled: false
+
+clusterAutoscaler:
+  enabled: false
+
+descheduler:
+  enabled: false
+
+ingressNginx:
+  enabled: false
+  serviceMonitor:
+    enabled: false
+
+keda:
+  enabled: false
+
+kubePrometheusStack:
+  enabled: false
+
+linkerd2:
+  enabled: false
+
+loki:
+  enabled: false
+
+prometheusBlackboxExporter:
+  enabled: false
+
+promtail:
+  enabled: false
+
+sealedSecrets:
+  enabled: false
+
+tempo:
+  enabled: false

@@ -1,0 +1,71 @@
+---
+apiVersion: v2
+name: covergo
+description: CoverGo Kubernetes Helm Chart
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+kubeVersion: ">=1.18.0-0"
+keywords:
+  - operator
+  - prometheus
+  - kube-prometheus
+  - grafana
+  - loki
+  - tempo
+  - linkerd
+  - keda
+  - autoscaler
+dependencies:
+  - name: aws-node-termination-handler
+    version: "0.15.4"
+    repository: "file://./charts/aws-node-termination-handler"
+    condition: awsNodeTerminationHandler.enabled
+  - name: cert-manager
+    version: "v1.5.4"
+    repository: "file://./charts/cert-manager"
+    condition: certManager.enabled
+  - name: descheduler
+    version: "0.22.1"
+    repository: "file://./charts/descheduler"
+    condition: descheduler.enabled
+  - name: cluster-autoscaler
+    version: "9.10.7"
+    repository: "file://./charts/cluster-autoscaler"
+    condition: clusterAutoscaler.enabled
+  - name: ingress-nginx
+    version: "4.0.6"
+    repository: "file://./charts/ingress-nginx"
+    condition: ingressNginx.enabled
+  - name: keda
+    version: "2.4.0"
+    repository: "file://./charts/keda"
+    condition: keda.enabled
+  - name: kube-prometheus-stack
+    version: "19.2.2"
+    repository: "file://./charts/kube-prometheus-stack"
+    condition: kubePrometheusStack.enabled
+  - name: linkerd2
+    version: "19.2.2"
+    repository: "file://./charts/linkerd2"
+    condition: linkerd2.enabled
+  - name: prometheus-blackbox-exporter
+    version: "5.2.0"
+    repository: "file://./charts/prometheus-blackbox-exporter"
+    condition: prometheusBlackboxExporter.enabled
+  - name: loki
+    version: "2.6.0"
+    repository: "file://./charts/loki"
+    condition: loki.enabled
+  - name: promtail
+    version: "3.8.2"
+    repository: "file://./charts/promtail"
+    condition: promtail.enabled
+  - name: sealed-secrets
+    version: "1.16.1"
+    repository: "file://./charts/sealed-secrets"
+    condition: sealedSecrets.enabled
+  - name: tempo
+    version: "0.7.7"
+    repository: "file://./charts/tempo"
+    condition: tempo.enabled
