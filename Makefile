@@ -13,3 +13,9 @@ build:
 	@-echo '------------------List of charts------------------'
 	@-ls test/*/* | awk '{print $0}'
 	@-echo ''
+
+tls:
+	@-openssl req -x509 -nodes -newkey rsa:4096 -keyout "sealed-secrets.key" -out "sealed-secrets.crt" -subj "/CN=sealed-secret/O=sealed-secret"
+	@-kubectl create secret tls sealed-secrets-tls --cert=sealed-secrets.crt --key=sealed-secrets.key --dry-run=client -o yaml
+	@-mv sealed-secrets.crt encrypt.pub
+	@-rm sealed-secrets.key
