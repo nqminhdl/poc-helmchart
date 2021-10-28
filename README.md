@@ -46,3 +46,16 @@ ingressNginx:
 ## How to upgrade chart version
 
 Follow steps in [How to add new helm chart](#How-to-add-new-helm-chart)
+
+## How to generate TLS secret with kubeseal
+
+```bash
+# Generate sealed-secret secret and encrypt certificate
+make tls-sealed-secrets
+
+# Generate tls secrets for linkerd
+make tls-linkerd2
+
+# Clean up when copy is done
+make clean
+```
