@@ -1,6 +1,8 @@
 # ---------------------------------------------
 awsNodeTerminationHandler:
   enabled: true
+
+aws-node-termination-handler:
   nodeSelector:
     node.kubernetes.io/lifecycle: spot
   podMonitor:
@@ -12,6 +14,8 @@ awsNodeTerminationHandler:
 # ---------------------------------------------
 certManager:
   enabled: true
+
+cert-manager:
   installCRDs: true
   fullnameOverride: cert-manager
   prometheus:
@@ -23,6 +27,8 @@ certManager:
 # ---------------------------------------------
 clusterAutoscaler:
   enabled: true
+
+cluster-autoscaler:
   autoDiscovery:
     clusterName: covergo-example # input AWS EKS cluster name
   awsRegion: ap-east-1 # input AWS EKS region
@@ -44,6 +50,8 @@ clusterAutoscaler:
 # ---------------------------------------------
 ingressNginx:
   enabled: true
+
+ingress-nginx:
   fullnameOverride: nginx-ingress
   controller:
     replicaCount: 3
@@ -93,6 +101,8 @@ keda:
 # ---------------------------------------------
 kubePrometheusStack:
   enabled: true
+
+kube-prometheus-stack:
   alertmanager:
     enabled: true
     config:
@@ -131,6 +141,7 @@ kubePrometheusStack:
         matchLabels:
           covergo.cloud/alertmanager: default
       externalUrl: "https://alertmanager.domain.example"
+
   prometheus:
     enabled: true
     ingress:
@@ -167,6 +178,7 @@ kubePrometheusStack:
               target_label: target
             - target_label: __address__
               replacement: prometheus-blackbox-exporter:9115
+
   grafana:
     enabled: true
     defaultDashboardsEnabled: true
@@ -331,6 +343,8 @@ loki:
 # ---------------------------------------------
 prometheusBlackboxExporter:
   enabled: true
+
+prometheus-blackbox-exporter:
   fullnameOverride: "prometheus-blackbox-exporter"
   config:
     modules:
@@ -413,6 +427,8 @@ promtail:
 # ---------------------------------------------
 sealedSecrets:
   enabled: true
+
+sealed-secrets:
   secretName: sealed-secrets-tls
 # ---------------------------------------------
 tempo:

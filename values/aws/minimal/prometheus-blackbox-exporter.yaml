@@ -1,6 +1,8 @@
 # ---------------------------------------------
 prometheusBlackboxExporter:
   enabled: true
+
+prometheus-blackbox-exporter:
   fullnameOverride: "prometheus-blackbox-exporter"
   config:
     modules:

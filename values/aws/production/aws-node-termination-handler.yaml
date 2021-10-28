@@ -1,6 +1,8 @@
 # ---------------------------------------------
 awsNodeTerminationHandler:
   enabled: true
+
+aws-node-termination-handler:
   nodeSelector:
     node.kubernetes.io/lifecycle: spot
   podMonitor:

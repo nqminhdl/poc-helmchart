@@ -1,6 +1,8 @@
 # ---------------------------------------------
 ingressNginx:
   enabled: true
+
+ingress-nginx:
   fullnameOverride: nginx-ingress
   controller:
     replicaCount: 3

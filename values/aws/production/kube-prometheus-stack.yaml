@@ -1,6 +1,8 @@
 # ---------------------------------------------
 kubePrometheusStack:
   enabled: true
+
+kube-prometheus-stack:
   alertmanager:
     enabled: true
     config:
@@ -39,6 +41,7 @@ kubePrometheusStack:
         matchLabels:
           covergo.cloud/alertmanager: default
       externalUrl: "https://alertmanager.domain.example"
+
   prometheus:
     enabled: true
     ingress:
@@ -75,6 +78,7 @@ kubePrometheusStack:
               target_label: target
             - target_label: __address__
               replacement: prometheus-blackbox-exporter:9115
+
   grafana:
     enabled: true
     defaultDashboardsEnabled: true
