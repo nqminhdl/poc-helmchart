@@ -1,0 +1,442 @@
+# ---------------------------------------------
+awsNodeTerminationHandler:
+  enabled: true
+  nodeSelector:
+    node.kubernetes.io/lifecycle: spot
+  podMonitor:
+    create: true
+    labels:
+      release: prometheus
+  rbac:
+    pspEnabled: false
+# ---------------------------------------------
+certManager:
+  enabled: true
+  installCRDs: true
+  fullnameOverride: cert-manager
+  prometheus:
+    enabled: true
+    servicemonitor:
+      enabled: true
+      labels:
+        release: prometheus
+# ---------------------------------------------
+clusterAutoscaler:
+  enabled: true
+  autoDiscovery:
+    clusterName: covergo-example # input AWS EKS cluster name
+  awsRegion: ap-east-1 # input AWS EKS region
+  replicaCount: 3
+  rbac:
+    create: true
+  extraArgs:
+    skip-nodes-with-local-storage: false
+    skip-nodes-with-system-pods: false
+  additionalLabels:
+    meta.helm.sh/release-namespace: k8s-component-scaling
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    namespace: k8s-component-monitoring
+    selector:
+      release: prometheus
+    path: /metrics
+# ---------------------------------------------
+ingressNginx:
+  enabled: true
+  fullnameOverride: nginx-ingress
+  controller:
+    replicaCount: 3
+    config:
+      brotli-level: "4"
+      enable-brotli: true
+      use-gzip: true
+      client-header-timeout: 180
+      client-body-timeout: 180
+      upstream-keepalive-timeout: 180
+      proxy-read-timeout: 180
+      proxy-send-timeout: 180
+      use-proxy-protocol: "true"
+      use-forwarded-headers: "true"
+      ssl-passthrough: "true"
+    service:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+    ingressClass: nginx
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        additionalLabels:
+          release: prometheus
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - ingress-nginx
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - ingress-nginx
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - controller
+            topologyKey: "kubernetes.io/hostname"
+# ---------------------------------------------
+keda:
+  enabled: true
+# ---------------------------------------------
+kubePrometheusStack:
+  enabled: true
+  alertmanager:
+    enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['alertname', 'cluster', 'service', 'team', 'label_team', 'severity']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'infra'
+        routes:
+          - match:
+              alertname: Watchdog
+            receiver: 'infra'
+            continue: true
+          - match:
+              team: infra
+            receiver: 'infra'
+      receivers:
+        - name: 'infra'
+          opsgenie_configs:
+            - responders:
+                - name: 'SaaS-Infra'
+                  type: 'team'
+              tags: 'tenant:covergo,team:saas-infra'
+              priority: '{{ if eq .GroupLabels.severity "critical"}}P1{{else}}P3{{end}}'
+              api_key: "75236dec-5dd6-43c5-bdfa-03d84658947c"
+              send_resolved: true
+    ingress:
+      enabled: false
+    alertmanagerSpec:
+      retention: 120h
+      podAntiAffinityTopologyKey: kubernetes.io/hostname
+      alertmanagerConfigSelector:
+        matchLabels:
+          covergo.cloud/alertmanager: default
+      externalUrl: "https://alertmanager.domain.example"
+  prometheus:
+    enabled: true
+    ingress:
+      enabled: false
+    prometheusSpec:
+      retention: 90d
+      paused: false
+      shards: 1
+      replicas: 2
+      remoteWrite: []
+      externalLabels:
+        cluster: covergo-example # change cluster name
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 30Gi
+      additionalScrapeConfigs:
+        - job_name: 'blackbox-exporter'
+          metrics_path: /probe
+          params:
+            module: [http_2xx_3xx_4xx]
+          static_configs:
+            - targets:
+                - list_of_monitor_urls # define list of monitor urls
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_module]
+              target_label: module
+            - source_labels: [__param_target]
+              target_label: target
+            - target_label: __address__
+              replacement: prometheus-blackbox-exporter:9115
+  grafana:
+    enabled: true
+    defaultDashboardsEnabled: true
+    adminPassword: GswEJFeYw3m3UwzizaYwZ5WcNpmDAJdx
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - monitoring.domain.example
+      tls:
+        - secretName: monitoring-domain-example
+          hosts:
+            - monitoring.domain.example
+    plugins:
+      - novatec-sdg-panel
+    grafana.ini:
+      dashboards:
+        default_home_dashboard_path: /tmp/dashboards/k8s-resources-cluster.json
+      server:
+        root_url: https://monitoring.domain.example
+      users:
+        viewers_can_edit: true
+      auth.basic:
+        enabled: true
+    sidecar:
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+    persistence:
+      enabled: false
+    imageRenderer:
+      enabled: true
+    additionalDataSources:
+      - access: proxy
+        apiVersion: 1
+        basicAuth: false
+        editable: false
+        isDefault: false
+        name: Loki
+        orgId: 1
+        type: loki
+        uid: loki
+        url: http://loki:3100
+        version: 1
+        jsonData:
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: '.*\"TraceId\":\"(\w+)\".*'
+              name: TraceId
+              url: '$${__value.raw}'
+      - access: proxy
+        apiVersion: 1
+        basicAuth: false
+        editable: false
+        isDefault: false
+        name: Tempo
+        orgId: 1
+        type: tempo
+        uid: tempo
+        url: http://tempo:3100
+        version: 1
+# ---------------------------------------------
+linkerd2:
+  enabled: true
+
+  grafana:
+    enabled: false
+
+  enablePodAntiAffinity: true
+
+  # proxy configuration
+  proxy:
+    resources:
+      cpu:
+        request: 20m
+      memory:
+        limit: 250Mi
+        request: 20Mi
+
+  # controller configuration
+  controllerReplicas: 3
+  controllerResources: &controller_resources
+    cpu: &controller_resources_cpu
+      limit: ""
+      request: 100m
+    memory:
+      limit: 250Mi
+      request: 50Mi
+  destinationResources: *controller_resources
+  publicAPIResources: *controller_resources
+
+  # identity configuration
+  identityResources:
+    cpu: *controller_resources_cpu
+    memory:
+      limit: 250Mi
+      request: 10Mi
+
+  # heartbeat configuration
+  heartbeatResources: *controller_resources
+
+  # proxy injector configuration
+  proxyInjectorResources: *controller_resources
+  webhookFailurePolicy: Fail
+
+  # service profile validator configuration
+  spValidatorResources: *controller_resources
+
+  installNamespace: false
+  identity:
+    issuer:
+      # Test value
+      crtExpiry: "2022-06-10T04:07:19Z" # use this command to generate expiry (date -v +1y +%Y-%m-%dT%H:%M:%SZ)
+# ---------------------------------------------
+loki:
+  enabled: true
+  config:
+    auth_enabled: false
+    ingester:
+      chunk_idle_period: 3m
+      chunk_block_size: 262144
+      chunk_retain_period: 1m
+      max_transfer_retries: 0
+      lifecycler:
+        ring:
+          kvstore:
+            store: inmemory
+    limits_config:
+      enforce_metric_name: false
+      reject_old_samples: true
+      reject_old_samples_max_age: 168h
+    schema_config:
+      configs:
+        - from: 2020-11-26
+          store: boltdb-shipper
+          object_store: s3
+          schema: v11
+          index:
+            prefix: index_
+            period: 24h
+    server:
+      http_listen_port: 3100
+    storage_config:
+      boltdb_shipper:
+        active_index_directory: /data/loki/boltdb-shipper-active
+        cache_location: /data/loki/boltdb-shipper-cache
+        cache_ttl: 24h
+        shared_store: s3
+      aws:
+        s3: s3://ap-southeast-1/input_bucket_name
+        s3forcepathstyle: true
+    chunk_store_config:
+      max_look_back_period: 0s
+    table_manager:
+      retention_deletes_enabled: false
+      retention_period: 0s
+    compactor:
+      working_directory: /data/loki/boltdb-shipper-compactor
+      shared_store: filesystem
+# ---------------------------------------------
+prometheusBlackboxExporter:
+  enabled: true
+  fullnameOverride: "prometheus-blackbox-exporter"
+  config:
+    modules:
+      http_2xx_3xx_4xx:
+        http:
+          no_follow_redirects: false
+          preferred_ip_protocol: ip4
+          valid_status_codes:
+            - 200
+            - 301
+            - 302
+            - 308
+            - 401
+            - 403
+          valid_http_versions:
+            - HTTP/1.1
+            - HTTP/2.0
+          tls_config:
+            insecure_skip_verify: true
+        prober: http
+        timeout: 10s
+      tcp_connect:
+        prober: tcp
+        timeout: 10s
+  serviceAccount:
+    name: "blackbox-exporter"
+  pspEnabled: false
+# ---------------------------------------------
+promtail:
+  enabled: true
+  config:
+    lokiAddress: http://loki:3100
+    snippets:
+      common:
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_node_name
+          target_label: node_name
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_namespace
+          target_label: namespace
+        - action: replace
+          replacement: $1
+          separator: /
+          source_labels:
+            - namespace
+            - app
+          target_label: job
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_name
+          target_label: pod
+        - action: replace
+          source_labels:
+            - __meta_kubernetes_pod_container_name
+          target_label: container
+        - action: replace
+          replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+            - __meta_kubernetes_pod_uid
+            - __meta_kubernetes_pod_container_name
+          target_label: __path__
+        - action: replace
+          regex: true/(.*)
+          replacement: /var/log/pods/*$1/*.log
+          separator: /
+          source_labels:
+            - __meta_kubernetes_pod_annotationpresent_kubernetes_io_config_hash
+            - __meta_kubernetes_pod_annotation_kubernetes_io_config_hash
+            - __meta_kubernetes_pod_container_name
+          target_label: __path__
+        - action: labelmap
+          regex: __meta_kubernetes_pod_label_(.+)
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: prometheus
+# ---------------------------------------------
+sealedSecrets:
+  enabled: true
+  secretName: sealed-secrets-tls
+# ---------------------------------------------
+tempo:
+  enabled: true
+  fullnameOverride: tempo
+  tempo:
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    retention: 24h
+    server:
+      httpListenPort: 3100
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: input_bucket_name
+          endpoint: s3.dualstack.ap-southeast-1.amazonaws.com
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317

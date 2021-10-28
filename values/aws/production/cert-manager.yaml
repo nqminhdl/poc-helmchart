@@ -1,0 +1,11 @@
+# ---------------------------------------------
+certManager:
+  enabled: true
+  installCRDs: true
+  fullnameOverride: cert-manager
+  prometheus:
+    enabled: true
+    servicemonitor:
+      enabled: true
+      labels:
+        release: prometheus

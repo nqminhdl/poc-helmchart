@@ -1,0 +1,52 @@
+# ---------------------------------------------
+linkerd2:
+  enabled: true
+
+  grafana:
+    enabled: false
+
+  enablePodAntiAffinity: true
+
+  # proxy configuration
+  proxy:
+    resources:
+      cpu:
+        request: 20m
+      memory:
+        limit: 250Mi
+        request: 20Mi
+
+  # controller configuration
+  controllerReplicas: 3
+  controllerResources: &controller_resources
+    cpu: &controller_resources_cpu
+      limit: ""
+      request: 100m
+    memory:
+      limit: 250Mi
+      request: 50Mi
+  destinationResources: *controller_resources
+  publicAPIResources: *controller_resources
+
+  # identity configuration
+  identityResources:
+    cpu: *controller_resources_cpu
+    memory:
+      limit: 250Mi
+      request: 10Mi
+
+  # heartbeat configuration
+  heartbeatResources: *controller_resources
+
+  # proxy injector configuration
+  proxyInjectorResources: *controller_resources
+  webhookFailurePolicy: Fail
+
+  # service profile validator configuration
+  spValidatorResources: *controller_resources
+
+  installNamespace: false
+  identity:
+    issuer:
+      # Test value
+      crtExpiry: "2022-06-10T04:07:19Z" # use this command to generate expiry (date -v +1y +%Y-%m-%dT%H:%M:%SZ)

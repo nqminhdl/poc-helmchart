@@ -1,0 +1,21 @@
+# ---------------------------------------------
+clusterAutoscaler:
+  enabled: true
+  autoDiscovery:
+    clusterName: covergo-example # input AWS EKS cluster name
+  awsRegion: ap-east-1 # input AWS EKS region
+  replicaCount: 3
+  rbac:
+    create: true
+  extraArgs:
+    skip-nodes-with-local-storage: false
+    skip-nodes-with-system-pods: false
+  additionalLabels:
+    meta.helm.sh/release-namespace: k8s-component-scaling
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    namespace: k8s-component-monitoring
+    selector:
+      release: prometheus
+    path: /metrics
