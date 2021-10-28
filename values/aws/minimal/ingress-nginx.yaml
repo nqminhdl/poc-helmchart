@@ -1,0 +1,46 @@
+# ---------------------------------------------
+ingressNginx:
+  enabled: true
+  fullnameOverride: nginx-ingress
+  controller:
+    replicaCount: 3
+    config:
+      brotli-level: "4"
+      enable-brotli: true
+      use-gzip: true
+      client-header-timeout: 180
+      client-body-timeout: 180
+      upstream-keepalive-timeout: 180
+      proxy-read-timeout: 180
+      proxy-send-timeout: 180
+      use-proxy-protocol: "true"
+      use-forwarded-headers: "true"
+      ssl-passthrough: "true"
+    service:
+      annotations:
+        service.beta.kubernetes.io/aws-load-balancer-proxy-protocol: '*'
+    ingressClass: nginx
+    metrics:
+      enabled: true
+      serviceMonitor:
+        enabled: true
+        additionalLabels:
+          release: prometheus
+    affinity:
+      podAntiAffinity:
+        requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+                - key: app.kubernetes.io/name
+                  operator: In
+                  values:
+                    - ingress-nginx
+                - key: app.kubernetes.io/instance
+                  operator: In
+                  values:
+                    - ingress-nginx
+                - key: app.kubernetes.io/component
+                  operator: In
+                  values:
+                    - controller
+            topologyKey: "kubernetes.io/hostname"

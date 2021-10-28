@@ -1,0 +1,140 @@
+# ---------------------------------------------
+kubePrometheusStack:
+  enabled: true
+  alertmanager:
+    enabled: true
+    config:
+      global:
+        resolve_timeout: 5m
+      route:
+        group_by: ['alertname', 'cluster', 'service', 'team', 'label_team', 'severity']
+        group_wait: 30s
+        group_interval: 5m
+        repeat_interval: 12h
+        receiver: 'infra'
+        routes:
+          - match:
+              alertname: Watchdog
+            receiver: 'infra'
+            continue: true
+          - match:
+              team: infra
+            receiver: 'infra'
+      receivers:
+        - name: 'infra'
+          opsgenie_configs:
+            - responders:
+                - name: 'SaaS-Infra'
+                  type: 'team'
+              tags: 'tenant:covergo,team:saas-infra'
+              priority: '{{ if eq .GroupLabels.severity "critical"}}P1{{else}}P3{{end}}'
+              api_key: "75236dec-5dd6-43c5-bdfa-03d84658947c"
+              send_resolved: true
+    ingress:
+      enabled: false
+    alertmanagerSpec:
+      retention: 120h
+      podAntiAffinityTopologyKey: kubernetes.io/hostname
+      alertmanagerConfigSelector:
+        matchLabels:
+          covergo.cloud/alertmanager: default
+      externalUrl: "https://alertmanager.domain.example"
+  prometheus:
+    enabled: true
+    ingress:
+      enabled: false
+    prometheusSpec:
+      retention: 90d
+      paused: false
+      shards: 1
+      replicas: 1
+      remoteWrite: []
+      externalLabels:
+        cluster: covergo-example # change cluster name
+      storageSpec:
+        volumeClaimTemplate:
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: 30Gi
+      additionalScrapeConfigs:
+        - job_name: 'blackbox-exporter'
+          metrics_path: /probe
+          params:
+            module: [http_2xx_3xx_4xx]
+          static_configs:
+            - targets:
+                - list_of_monitor_urls # define list of monitor urls
+          relabel_configs:
+            - source_labels: [__address__]
+              target_label: __param_target
+            - source_labels: [__param_module]
+              target_label: module
+            - source_labels: [__param_target]
+              target_label: target
+            - target_label: __address__
+              replacement: prometheus-blackbox-exporter:9115
+  grafana:
+    enabled: true
+    defaultDashboardsEnabled: true
+    adminPassword: GswEJFeYw3m3UwzizaYwZ5WcNpmDAJdx
+    ingress:
+      enabled: true
+      annotations:
+        kubernetes.io/ingress.class: nginx
+        cert-manager.io/cluster-issuer: letsencrypt-prod
+      hosts:
+        - monitoring.domain.example
+      tls:
+        - secretName: monitoring-domain-example
+          hosts:
+            - monitoring.domain.example
+    plugins:
+      - novatec-sdg-panel
+    grafana.ini:
+      dashboards:
+        default_home_dashboard_path: /tmp/dashboards/k8s-resources-cluster.json
+      server:
+        root_url: https://monitoring.domain.example
+      users:
+        viewers_can_edit: true
+      auth.basic:
+        enabled: true
+    sidecar:
+      dashboards:
+        enabled: true
+        label: grafana_dashboard
+    persistence:
+      enabled: false
+    imageRenderer:
+      enabled: true
+    additionalDataSources:
+      - access: proxy
+        apiVersion: 1
+        basicAuth: false
+        editable: false
+        isDefault: false
+        name: Loki
+        orgId: 1
+        type: loki
+        uid: loki
+        url: http://loki:3100
+        version: 1
+        jsonData:
+          derivedFields:
+            - datasourceUid: tempo
+              matcherRegex: '.*\"TraceId\":\"(\w+)\".*'
+              name: TraceId
+              url: '$${__value.raw}'
+      - access: proxy
+        apiVersion: 1
+        basicAuth: false
+        editable: false
+        isDefault: false
+        name: Tempo
+        orgId: 1
+        type: tempo
+        uid: tempo
+        url: http://tempo:3100
+        version: 1

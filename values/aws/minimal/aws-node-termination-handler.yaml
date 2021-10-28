@@ -1,0 +1,11 @@
+# ---------------------------------------------
+awsNodeTerminationHandler:
+  enabled: true
+  nodeSelector:
+    node.kubernetes.io/lifecycle: spot
+  podMonitor:
+    create: true
+    labels:
+      release: prometheus
+  rbac:
+    pspEnabled: false

@@ -1,0 +1,26 @@
+# ---------------------------------------------
+tempo:
+  enabled: true
+  fullnameOverride: tempo
+  tempo:
+    resources:
+      requests:
+        cpu: 1
+        memory: 2Gi
+      limits:
+        cpu: 2
+        memory: 4Gi
+    retention: 24h
+    server:
+      httpListenPort: 3100
+    storage:
+      trace:
+        backend: s3
+        s3:
+          bucket: input_bucket_name
+          endpoint: s3.dualstack.ap-southeast-1.amazonaws.com
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
