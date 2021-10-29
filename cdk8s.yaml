@@ -1,0 +1,8 @@
+---
+language: python
+app: pipenv run python main.py
+imports:
+  - gitrepository
+  - helmrelease
+  - k8s
+  - kustiomization

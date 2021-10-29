@@ -28,7 +28,7 @@ kube-prometheus-stack:
             - responders:
                 - name: 'SaaS-Infra'
                   type: 'team'
-              tags: 'tenant:covergo,team:saas-infra'
+              tags: 'tenant:bundle,team:saas-infra'
               priority: '{{ if eq .GroupLabels.severity "critical"}}P1{{else}}P3{{end}}'
               api_key: "75236dec-5dd6-43c5-bdfa-03d84658947c"
               send_resolved: true
@@ -39,7 +39,7 @@ kube-prometheus-stack:
       podAntiAffinityTopologyKey: kubernetes.io/hostname
       alertmanagerConfigSelector:
         matchLabels:
-          covergo.cloud/alertmanager: default
+          bundle.cloud/alertmanager: default
       externalUrl: "https://alertmanager.domain.example"
 
   prometheus:
@@ -50,10 +50,10 @@ kube-prometheus-stack:
       retention: 90d
       paused: false
       shards: 1
-      replicas: 1
+      replicas: 2
       remoteWrite: []
       externalLabels:
-        cluster: covergo-example # change cluster name
+        cluster: bundle-example # change cluster name
       storageSpec:
         volumeClaimTemplate:
           spec:

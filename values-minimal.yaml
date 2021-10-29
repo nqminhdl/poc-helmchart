@@ -1,17 +1,4 @@
 # ---------------------------------------------
-awsNodeTerminationHandler:
-  enabled: true
-
-aws-node-termination-handler:
-  nodeSelector:
-    node.kubernetes.io/lifecycle: spot
-  podMonitor:
-    create: true
-    labels:
-      release: prometheus
-  rbac:
-    pspEnabled: false
-# ---------------------------------------------
 certManager:
   enabled: true
 
@@ -24,29 +11,6 @@ cert-manager:
       enabled: true
       labels:
         release: prometheus
-# ---------------------------------------------
-clusterAutoscaler:
-  enabled: true
-
-cluster-autoscaler:
-  autoDiscovery:
-    clusterName: covergo-example # input AWS EKS cluster name
-  awsRegion: ap-east-1 # input AWS EKS region
-  replicaCount: 3
-  rbac:
-    create: true
-  extraArgs:
-    skip-nodes-with-local-storage: false
-    skip-nodes-with-system-pods: false
-  additionalLabels:
-    meta.helm.sh/release-namespace: k8s-component-scaling
-  serviceMonitor:
-    enabled: true
-    interval: 15s
-    namespace: k8s-component-monitoring
-    selector:
-      release: prometheus
-    path: /metrics
 # ---------------------------------------------
 ingressNginx:
   enabled: true
@@ -125,7 +89,7 @@ kube-prometheus-stack:
             - responders:
                 - name: 'SaaS-Infra'
                   type: 'team'
-              tags: 'tenant:covergo,team:saas-infra'
+              tags: 'tenant:bundle,team:saas-infra'
               priority: '{{ if eq .GroupLabels.severity "critical"}}P1{{else}}P3{{end}}'
               api_key: "75236dec-5dd6-43c5-bdfa-03d84658947c"
               send_resolved: true
@@ -136,7 +100,7 @@ kube-prometheus-stack:
       podAntiAffinityTopologyKey: kubernetes.io/hostname
       alertmanagerConfigSelector:
         matchLabels:
-          covergo.cloud/alertmanager: default
+          bundle.cloud/alertmanager: default
       externalUrl: "https://alertmanager.domain.example"
 
   prometheus:
@@ -150,7 +114,7 @@ kube-prometheus-stack:
       replicas: 1
       remoteWrite: []
       externalLabels:
-        cluster: covergo-example # change cluster name
+        cluster: bundle-example # change cluster name
       storageSpec:
         volumeClaimTemplate:
           spec:
@@ -370,12 +334,6 @@ promtail:
     labels:
       release: prometheus
 # ---------------------------------------------
-sealedSecrets:
-  enabled: true
-
-sealed-secrets:
-  secretName: sealed-secrets-tls
-# ---------------------------------------------
 tempo:
   enabled: true
   fullnameOverride: tempo
@@ -401,3 +359,48 @@ tempo:
         protocols:
           grpc:
             endpoint: 0.0.0.0:4317
+# ---------------------------------------------
+awsNodeTerminationHandler:
+  enabled: true
+
+aws-node-termination-handler:
+  nodeSelector:
+    node.kubernetes.io/lifecycle: spot
+  podMonitor:
+    create: true
+    labels:
+      release: prometheus
+  rbac:
+    pspEnabled: false
+# ---------------------------------------------
+clusterAutoscaler:
+  enabled: true
+
+cluster-autoscaler:
+  autoDiscovery:
+    clusterName: bundle-example # input AWS EKS cluster name
+  awsRegion: ap-east-1 # input AWS EKS region
+  replicaCount: 3
+  rbac:
+    create: true
+  extraArgs:
+    skip-nodes-with-local-storage: false
+    skip-nodes-with-system-pods: false
+  additionalLabels:
+    meta.helm.sh/release-namespace: k8s-component-scaling
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    namespace: k8s-component-monitoring
+    selector:
+      release: prometheus
+    path: /metrics
+# ---------------------------------------------
+keda:
+  enabled: true
+# ---------------------------------------------
+sealedSecrets:
+  enabled: true
+
+sealed-secrets:
+  secretName: sealed-secrets-tls

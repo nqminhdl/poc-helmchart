@@ -4,7 +4,7 @@ clusterAutoscaler:
 
 cluster-autoscaler:
   autoDiscovery:
-    clusterName: covergo-example # input AWS EKS cluster name
+    clusterName: bundle-example # input AWS EKS cluster name
   awsRegion: ap-east-1 # input AWS EKS region
   replicaCount: 3
   rbac:

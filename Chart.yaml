@@ -1,7 +1,7 @@
 ---
 apiVersion: v2
-name: covergo
-description: CoverGo Kubernetes Helm Chart
+name: bundle-infra-charts
+description: bundle Kubernetes Helm Chart
 type: application
 version: 0.2.0
 appVersion: "0.1.0"

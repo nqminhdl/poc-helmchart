@@ -47,14 +47,40 @@ ingressNginx:
 
 Follow steps in [How to add new helm chart](#How-to-add-new-helm-chart)
 
-## How to generate TLS secret with kubeseal
+## How to generate fluxcd manifest for minimal spec
 
 ```bash
-# Generate sealed-secret secret and encrypt certificate
+# Create python virtual env
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
+
+# Generate sealed secret TLS secret
 make tls-sealed-secrets
 
-# Generate tls secrets for linkerd
+# Generate fluxcd manifest
+make fluxcd spec=minimal
+
+# Clean up when copy is done
+make clean
+```
+
+## How to generate fluxcd manifest
+
+```bash
+# Create python virtual env
+python3 -m venv .venv
+source .venv/bin/activate
+pip3 install -r requirements.txt
+
+# Generate sealed secret TLS secret
+make tls-sealed-secrets
+
+# Generate
 make tls-linkerd2
+
+# Generate fluxcd manifest
+make fluxcd spec=production
 
 # Clean up when copy is done
 make clean

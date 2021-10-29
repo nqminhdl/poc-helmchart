@@ -1,17 +1,4 @@
 # ---------------------------------------------
-awsNodeTerminationHandler:
-  enabled: true
-
-aws-node-termination-handler:
-  nodeSelector:
-    node.kubernetes.io/lifecycle: spot
-  podMonitor:
-    create: true
-    labels:
-      release: prometheus
-  rbac:
-    pspEnabled: false
-# ---------------------------------------------
 certManager:
   enabled: true
 
@@ -24,29 +11,6 @@ cert-manager:
       enabled: true
       labels:
         release: prometheus
-# ---------------------------------------------
-clusterAutoscaler:
-  enabled: true
-
-cluster-autoscaler:
-  autoDiscovery:
-    clusterName: covergo-example # input AWS EKS cluster name
-  awsRegion: ap-east-1 # input AWS EKS region
-  replicaCount: 3
-  rbac:
-    create: true
-  extraArgs:
-    skip-nodes-with-local-storage: false
-    skip-nodes-with-system-pods: false
-  additionalLabels:
-    meta.helm.sh/release-namespace: k8s-component-scaling
-  serviceMonitor:
-    enabled: true
-    interval: 15s
-    namespace: k8s-component-monitoring
-    selector:
-      release: prometheus
-    path: /metrics
 # ---------------------------------------------
 ingressNginx:
   enabled: true
@@ -96,8 +60,57 @@ ingress-nginx:
                     - controller
             topologyKey: "kubernetes.io/hostname"
 # ---------------------------------------------
-keda:
+linkerd2:
   enabled: true
+
+  grafana:
+    enabled: false
+
+  enablePodAntiAffinity: true
+
+  # proxy configuration
+  proxy:
+    resources:
+      cpu:
+        request: 20m
+      memory:
+        limit: 250Mi
+        request: 20Mi
+
+  # controller configuration
+  controllerReplicas: 3
+  controllerResources: &controller_resources
+    cpu: &controller_resources_cpu
+      limit: ""
+      request: 100m
+    memory:
+      limit: 250Mi
+      request: 50Mi
+  destinationResources: *controller_resources
+  publicAPIResources: *controller_resources
+
+  # identity configuration
+  identityResources:
+    cpu: *controller_resources_cpu
+    memory:
+      limit: 250Mi
+      request: 10Mi
+
+  # heartbeat configuration
+  heartbeatResources: *controller_resources
+
+  # proxy injector configuration
+  proxyInjectorResources: *controller_resources
+  webhookFailurePolicy: Fail
+
+  # service profile validator configuration
+  spValidatorResources: *controller_resources
+
+  installNamespace: false
+  identity:
+    issuer:
+      # Test value
+      crtExpiry: "2022-06-10T04:07:19Z" # use this command to generate expiry (date -v +1y +%Y-%m-%dT%H:%M:%SZ)
 # ---------------------------------------------
 kubePrometheusStack:
   enabled: true
@@ -128,7 +141,7 @@ kube-prometheus-stack:
             - responders:
                 - name: 'SaaS-Infra'
                   type: 'team'
-              tags: 'tenant:covergo,team:saas-infra'
+              tags: 'tenant:bundle,team:saas-infra'
               priority: '{{ if eq .GroupLabels.severity "critical"}}P1{{else}}P3{{end}}'
               api_key: "75236dec-5dd6-43c5-bdfa-03d84658947c"
               send_resolved: true
@@ -139,7 +152,7 @@ kube-prometheus-stack:
       podAntiAffinityTopologyKey: kubernetes.io/hostname
       alertmanagerConfigSelector:
         matchLabels:
-          covergo.cloud/alertmanager: default
+          bundle.cloud/alertmanager: default
       externalUrl: "https://alertmanager.domain.example"
 
   prometheus:
@@ -153,7 +166,7 @@ kube-prometheus-stack:
       replicas: 2
       remoteWrite: []
       externalLabels:
-        cluster: covergo-example # change cluster name
+        cluster: bundle-example # change cluster name
       storageSpec:
         volumeClaimTemplate:
           spec:
@@ -242,58 +255,6 @@ kube-prometheus-stack:
         uid: tempo
         url: http://tempo:3100
         version: 1
-# ---------------------------------------------
-linkerd2:
-  enabled: true
-
-  grafana:
-    enabled: false
-
-  enablePodAntiAffinity: true
-
-  # proxy configuration
-  proxy:
-    resources:
-      cpu:
-        request: 20m
-      memory:
-        limit: 250Mi
-        request: 20Mi
-
-  # controller configuration
-  controllerReplicas: 3
-  controllerResources: &controller_resources
-    cpu: &controller_resources_cpu
-      limit: ""
-      request: 100m
-    memory:
-      limit: 250Mi
-      request: 50Mi
-  destinationResources: *controller_resources
-  publicAPIResources: *controller_resources
-
-  # identity configuration
-  identityResources:
-    cpu: *controller_resources_cpu
-    memory:
-      limit: 250Mi
-      request: 10Mi
-
-  # heartbeat configuration
-  heartbeatResources: *controller_resources
-
-  # proxy injector configuration
-  proxyInjectorResources: *controller_resources
-  webhookFailurePolicy: Fail
-
-  # service profile validator configuration
-  spValidatorResources: *controller_resources
-
-  installNamespace: false
-  identity:
-    issuer:
-      # Test value
-      crtExpiry: "2022-06-10T04:07:19Z" # use this command to generate expiry (date -v +1y +%Y-%m-%dT%H:%M:%SZ)
 # ---------------------------------------------
 loki:
   enabled: true
@@ -425,12 +386,6 @@ promtail:
     labels:
       release: prometheus
 # ---------------------------------------------
-sealedSecrets:
-  enabled: true
-
-sealed-secrets:
-  secretName: sealed-secrets-tls
-# ---------------------------------------------
 tempo:
   enabled: true
   fullnameOverride: tempo
@@ -456,3 +411,48 @@ tempo:
         protocols:
           grpc:
             endpoint: 0.0.0.0:4317
+# ---------------------------------------------
+awsNodeTerminationHandler:
+  enabled: true
+
+aws-node-termination-handler:
+  nodeSelector:
+    node.kubernetes.io/lifecycle: spot
+  podMonitor:
+    create: true
+    labels:
+      release: prometheus
+  rbac:
+    pspEnabled: false
+# ---------------------------------------------
+clusterAutoscaler:
+  enabled: true
+
+cluster-autoscaler:
+  autoDiscovery:
+    clusterName: bundle-example # input AWS EKS cluster name
+  awsRegion: ap-east-1 # input AWS EKS region
+  replicaCount: 3
+  rbac:
+    create: true
+  extraArgs:
+    skip-nodes-with-local-storage: false
+    skip-nodes-with-system-pods: false
+  additionalLabels:
+    meta.helm.sh/release-namespace: k8s-component-scaling
+  serviceMonitor:
+    enabled: true
+    interval: 15s
+    namespace: k8s-component-monitoring
+    selector:
+      release: prometheus
+    path: /metrics
+# ---------------------------------------------
+keda:
+  enabled: true
+# ---------------------------------------------
+sealedSecrets:
+  enabled: true
+
+sealed-secrets:
+  secretName: sealed-secrets-tls

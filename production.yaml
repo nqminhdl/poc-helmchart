@@ -1,0 +1,26 @@
+---
+namespaces:
+  - k8s-component-certificate
+  - k8s-component-ingress
+  - k8s-component-monitoring
+  - k8s-component-scaling
+  - k8s-component-mesh
+
+components:
+  certificate:
+    - cert-manager
+  ingress:
+    - ingress-nginx
+  monitoring:
+    - kube-prmetheus-stack
+    - loki
+    - prometheus-blackbox-exporter
+    - promtail
+    - tempo
+  scaling:
+    - aws-node-termination-handler
+    - keda
+  secrets:
+    - sealed-secrets
+  mesh:
+    - linkerd2

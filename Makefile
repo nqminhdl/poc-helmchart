@@ -1,10 +1,11 @@
 clean:
 	@-rm -rf test/*
+	@-rm -rf dist/*
 	@test -f encrypt.pub && rm encrypt.pub
 	@test -f linkerd-certs.yaml && rm linkerd-certs.yaml
 	@test -f sealed-secrets-tls.yaml && rm sealed-secrets-tls.yaml
 
-build:
+helm:
 	@if [[ ${spec} == minimal ]]; then \
 		cat values/aws/${spec}/* > values-${spec}.yaml; \
 		helm template test . -f values-${spec}.yaml --output-dir test; \
@@ -51,3 +52,18 @@ tls-linkerd2:
 	@-echo 'Clean up generate certs and raw base64 secret'
 	@-ls | grep -E 'key|crt|base64' | awk '{print $0}'
 	@-rm ca.crt ca.key issuer.crt issuer.key linkerd-certs-base64.yaml
+
+fluxcd:
+	@if [[ ${spec} == minimal ]]; then \
+		export SPEC=minimal; \
+		cdk8s synth; \
+	elif [[ ${spec} == production ]]; then \
+		export SPEC=production; \
+		cdk8s synth; \
+	else \
+		echo "Bundle chart only supports minimal and production specs"; \
+	fi
+
+	@-echo '------------------List of fluxcd manifests------------------'
+	@-ls dist/*/* | awk '{print $0}'
+	@-echo ''
